@@ -1,0 +1,15 @@
+---
+- name: Network Getting started with playbook
+  hosts: sw1
+  connection: network_cli
+  gather_facts: false
+  hosts: all
+
+  tasks:
+    - name: create vlan
+      exos_config:
+          lines:
+              - create vlan "go1"
+              - configure vlan ansible_test tag 3
+              - configure vlan ansible_test add ports 3 tagged
+          save_when: changed
