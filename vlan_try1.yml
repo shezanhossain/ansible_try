@@ -1,15 +1,35 @@
 ---
-- name: Network Getting started with playbook
-  hosts: sw1
+- name: Generate
+  hosts: sw
   connection: network_cli
   gather_facts: false
-  hosts: all
+  
+  collections:
+    - community.network
 
   tasks:
-    - name: create vlan
-      exos_config:
-          lines:
-              - create vlan "go1"
-              - configure vlan ansible_test tag 3
-              - configure vlan ansible_test add ports 3 tagged
-          save_when: changed
+    - name: SET VLAN
+      vars:
+        vlan_items: "{{ range(1, num_vlans + 1) | map('string') | list }}"
+      block:
+        - name: Create VLAN name 
+          community.network.exos_config:
+            lines: 
+              - "create vlan {{ lookup('vars', 'VLAN_NAME_' + item) }}"
+          loop: "{{ vlan_items }}"
+          ignore_errors: True
+
+        - name: Configure VLAN TAG Configuration
+          community.network.exos_config:
+            lines: 
+              - "configure vlan {{ lookup('vars', 'VLAN_NAME_' + item) }} tag {{ lookup('vars', 'TAG_ID_' + item) }}"
+          loop: "{{ vlan_items }}"
+          when: lookup('vars', 'TAG_ID_' + item, default='') != ''
+          ignore_errors: True
+
+        - name: Add Ports to VLAN with or without TAG
+          community.network.exos_config:
+            lines: 
+              - "configure vlan {{ lookup('vars', 'VLAN_NAME_' + item) }} add ports {{ lookup('vars', 'PORT_NUM_' + item) }} {{ lookup('vars', 'TAGGED_' + item) }}"
+          loop: "{{ vlan_items }}"
+          when: lookup('vars', 'PORT_NUM_' + item, default='') != ''
